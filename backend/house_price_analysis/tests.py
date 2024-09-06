@@ -1,14 +1,10 @@
-# house_price_analysis/tests.py
-
 from django.test import TestCase
 from django.urls import reverse
-from rest_framework.test import APIClient
 from rest_framework import status
+from rest_framework.test import APIClient
 from .models import HousePrice, Region
-from .views import generate_price_trend_chart
-from datetime import date
 import json
-import base64
+from datetime import date
 
 class HousePriceModelTests(TestCase):
     def setUp(self):
@@ -61,23 +57,6 @@ class APIViewTests(TestCase):
     def test_get_regions_count(self):
         response = self.client.get(reverse('region-list'))
         self.assertEqual(len(response.data), 1)
-
-class ChartGenerationTests(TestCase):
-    def setUp(self):
-        HousePrice.objects.create(date=date(2023, 1, 1), average_price=200000)
-        HousePrice.objects.create(date=date(2023, 2, 1), average_price=210000)
-
-    def test_generate_price_trend_chart_type(self):
-        chart = generate_price_trend_chart()
-        self.assertIsInstance(chart, str)
-
-    def test_generate_price_trend_chart_valid_base64(self):
-        chart = generate_price_trend_chart()
-        try:
-            base64.b64decode(chart)
-        except:
-            self.fail("Generated chart is not a valid base64 string")
-
 class PriceTrendChartViewTests(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -91,12 +70,28 @@ class PriceTrendChartViewTests(TestCase):
     def test_price_trend_chart_view_content(self):
         response = self.client.get(reverse('price-trend-chart'))
         content = json.loads(response.content)
-        self.assertIn('chart', content)
+        self.assertIn('dates', content)
+        self.assertIn('average_prices', content)
 
-    def test_price_trend_chart_view_valid_base64(self):
+    def test_price_trend_chart_view_data_types(self):
         response = self.client.get(reverse('price-trend-chart'))
         content = json.loads(response.content)
-        try:
-            base64.b64decode(content['chart'])
-        except:
-            self.fail("Chart in response is not a valid base64 string")
+        self.assertIsInstance(content['dates'], list)
+        self.assertIsInstance(content['average_prices'], list)
+
+    def test_price_trend_chart_view_data_values(self):
+        response = self.client.get(reverse('price-trend-chart'))
+        content = json.loads(response.content)
+        self.assertEqual(len(content['dates']), 2)
+        self.assertEqual(len(content['average_prices']), 2)
+        self.assertAlmostEqual(content['average_prices'][0], 200.0, places=1)
+        self.assertAlmostEqual(content['average_prices'][1], 210.0, places=1)
+
+    def test_price_trend_chart_view_no_data(self):
+        HousePrice.objects.all().delete()
+        response = self.client.get(reverse('price-trend-chart'))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        content = json.loads(response.content)
+        self.assertIn('error', content)
+        self.assertEqual(content['error'], "No data available")
+        

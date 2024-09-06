@@ -1,9 +1,8 @@
 from django.http import JsonResponse
 from rest_framework import viewsets
 import pandas as pd
-
-from house_price_analysis.models import HousePrice, Region
-from house_price_analysis.serializers import HousePriceSerializer, RegionSerializer
+from .models import HousePrice, Region
+from .serializers import HousePriceSerializer, RegionSerializer
 
 class HousePriceViewSet(viewsets.ModelViewSet):
     queryset = HousePrice.objects.all()
@@ -27,13 +26,21 @@ def price_trend_chart(request):
         price_columns = ['average_price', 'detached_price', 'semi_detached_price', 'terraced_price', 'flat_price']
         for column in price_columns:
             if column in df.columns:
-                df[column] = df[column] / 1000
+                df[column] = df[column].astype(float) / 1000
 
         # Prepare data for JSON
-        chart_data = df.to_dict(orient='records')
+        chart_data = {
+            'dates': df['date'].astype(str).tolist(),
+            'average_prices': df['average_price'].tolist()
+        }
 
-        # Return JSON response
-        return JsonResponse(chart_data, safe=False)
+        # Add other price types if available
+        for column in ['detached_price', 'semi_detached_price', 'terraced_price', 'flat_price']:
+            if column in df.columns:
+                chart_data[column] = df[column].tolist()
+
+        # Return JSON response with numeric data
+        return JsonResponse(chart_data)
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
