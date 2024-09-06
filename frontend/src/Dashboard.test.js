@@ -1,10 +1,11 @@
+// Dashboard.test.js
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import App from './App';
+import Dashboard from './Dashboard';
 
 // Mock the API call
-jest.mock('./api/housepriceApi', () => ({
+jest.mock('../api/housepriceApi', () => ({
   getHousePriceData: jest.fn(() => Promise.resolve({
     'All UK': [
       { date: '2020-01', average_price: 200000, detached_price: 300000, semi_detached_price: 250000, terraced_price: 200000, flat_price: 150000 },
@@ -17,9 +18,9 @@ jest.mock('./api/housepriceApi', () => ({
   }))
 }));
 
-describe('App', () => {
+describe('Dashboard', () => {
   test('renders dashboard with dropdown and charts', async () => {
-    render(<App />);
+    render(<Dashboard />);
     
     expect(screen.getByLabelText('Select Area')).toBeInTheDocument();
     
@@ -32,7 +33,7 @@ describe('App', () => {
   });
 
   test('dropdown contains all specified areas', () => {
-    render(<App />);
+    render(<Dashboard />);
     const areas = [
       'All UK', 'Cambridge', 'Stevenage', 'Inner London', 'Sheffield', 'Bradford',
       'Leeds', 'York', 'Manchester', 'Salford', 'Nottingham', 'Bristol', 'Edinburgh',
@@ -46,7 +47,7 @@ describe('App', () => {
   });
 
   test('selecting an area updates all charts', async () => {
-    render(<App />);
+    render(<Dashboard />);
     const dropdown = screen.getByLabelText('Select Area');
     
     fireEvent.change(dropdown, { target: { value: 'Cambridge' } });
@@ -60,7 +61,7 @@ describe('App', () => {
   });
 
   test('charts display correct axes labels', async () => {
-    render(<App />);
+    render(<Dashboard />);
     
     await waitFor(() => {
       expect(screen.getByTestId('average-price-chart')).toHaveTextContent('Average Price (£)');
@@ -78,7 +79,7 @@ describe('App', () => {
   });
 
   test('charts display as line graphs', async () => {
-    render(<App />);
+    render(<Dashboard />);
     
     await waitFor(() => {
       expect(screen.getByTestId('average-price-chart')).toHaveAttribute('data-testid', 'line-chart');
