@@ -12,10 +12,13 @@ class RegionViewSet(viewsets.ModelViewSet):
     queryset = Region.objects.all()
     serializer_class = RegionSerializer
 
-def price_trend_chart(request):
+def house_prices_view(request, area=None):
     try:
         # Fetch data
-        data = HousePrice.objects.all().order_by('date')
+        if area:
+            data = HousePrice.objects.filter(area=area).order_by('date')
+        else:
+            data = HousePrice.objects.all().order_by('date')
         
         if not data.exists():
             return JsonResponse({"error": "No data available"}, status=404)
@@ -44,3 +47,6 @@ def price_trend_chart(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+def price_trend_chart(request,area):
+    return house_prices_view(request,area)
